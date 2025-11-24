@@ -272,7 +272,7 @@ This software demonstrates security concepts and is intended for:
 MIT License - See [LICENSE](../LICENSE) for details.
 
 **Author:** Oussama Afnakkar  
-**Blog:** [Secure Byte Chronicles](https://sbytec.com)  
+**Blog:** [Secure Byte Chronicles](https://www.sbytec.com)  
 **Date:** 24/11/2025
 
 ---
