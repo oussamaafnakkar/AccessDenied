@@ -52,7 +52,7 @@ A ransomware-like binary that demonstrates real-world malware techniques. Your m
 - C programming
 - Python scripting
 
-**New to RE?** Read the [guide](https://sbytec.com/blog/reverse-engineering/) first.
+**New to RE?** Read the [guide](https://www.sbytec.com/blog/reverse-engineering/) first.
 
 ### Running the Challenge
 
@@ -135,7 +135,7 @@ See `solution/` directory for:
 - `vault_decryptor.py` - Automated solver
 - `walkthrough.md` - Detailed step-by-step guide
 
-**Full writeup:** https://sbytec.com/accessdenied/vault-challenge/
+**Full writeup:** https://www.sbytec.com/accessdenied/vault-challenge/
 
 ---
 
@@ -260,7 +260,7 @@ This software demonstrates security concepts and is intended for:
 
 ## Support
 
-- **Full Writeup:** https://sbytec.com/accessdenied/vault-challenge/
+- **Full Writeup:** https://www.sbytec.com/accessdenied/vault-challenge/
 - **Issues:** https://github.com/oussamaafnakkar/AccessDenied/issues
 - **Twitter:** [@Oafnakkar](https://twitter.com/Oafnakkar)
 - **Email:** oussamaafnakkar2002@gmail.com
