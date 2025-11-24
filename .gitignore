@@ -1,0 +1,70 @@
+# Compiled binaries
+*.exe
+*.dll
+*.so
+*.dylib
+*.o
+*.obj
+
+# But keep the pre-compiled releases in bin/
+!bin/vault_challenge.exe
+!bin/vault_challenge_packed.exe
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+venv/
+env/
+ENV/
+
+# Editor/IDE files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+
+# Ghidra project files
+*.gpr
+*.lock
+*.rep/
+
+# IDA Pro files
+*.idb
+*.id0
+*.id1
+*.id2
+*.nam
+*.til
+
+# x64dbg files
+*.dd32
+*.dd64
+
+# Temporary files
+*.tmp
+*.log
+*.bak
+
+# Analysis outputs
+entropy_output.txt
+strings_output.txt
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# Linux
+*~
+.fuse_hidden*
+.Trash-*
+
+# macOS
+.AppleDouble
+.LSOverride
+._*
