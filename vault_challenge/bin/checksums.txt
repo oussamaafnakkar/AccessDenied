@@ -1,0 +1,27 @@
+# SHA256 Checksums for Vault Challenge Binaries
+# Generated: 2024-11-24
+# Author: Oussama Afnakkar - Secure Byte Chronicles
+
+# Instructions:
+# After compiling the binaries, generate checksums with:
+#   cd bin/
+#   sha256sum vault_challenge*.exe > checksums.txt
+#
+# Verify integrity with:
+#   sha256sum -c checksums.txt
+
+# Format: <SHA256>  <filename>
+
+# Unpacked binary (vault_challenge.exe)
+# Replace this line with actual hash after compilation
+7187fed220840e070d030b3b45d5e23789b08de04d9a047cad9d3aead592f179  vault_challenge.exe
+
+# Packed binary (vault_challenge_packed.exe)
+# Replace this line with actual hash after UPX packing
+59a37a62cee9ab2ebdb55f1a3899089816069d1ddbab0118fd25d7ca76c32341  vault_challenge_packed.exe
+# Notes:
+# - These hashes should match the binaries distributed in releases
+# - Users can verify file integrity before analysis
+# - Any mismatch indicates file corruption or tampering
+
+
