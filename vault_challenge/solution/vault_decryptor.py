@@ -2,25 +2,31 @@
 """
 Vault Challenge Decryptor
 Automatically cracks the challenge binary by reversing the key derivation
+
+Author: Oussama Afnakkar
+Blog: Secure Byte Chronicles (sbytec.com)
 """
 
 import struct
 import sys
 
-# Encrypted flag extracted from binary
+# Encrypted flag extracted from binary (encrypted with HWID=0xABCD1234)
 ENCRYPTED_FLAG = bytes([
-    0xe7, 0xd6, 0xd7, 0x2f, 0xcc, 0x99, 0xca, 0x82,
-    0xb0, 0xdf, 0xd3, 0xb3, 0xb5, 0x9a, 0xc2, 0x8e,
-    0xb4, 0x9b, 0xc6, 0xbb, 0xb5, 0x99, 0xca, 0xb3,
-    0xbf, 0xd6, 0xd3, 0x28, 0xb5, 0x9c, 0x11
+    0x8c, 0xbf, 0xbe, 0x46, 0xa7, 0xf0, 0xa1, 0xeb,
+    0xdb, 0xb4, 0xba, 0xda, 0x9e, 0xf1, 0xa9, 0xe7,
+    0x9f, 0xf0, 0xad, 0xd2, 0x9e, 0xf0, 0xa1, 0xda,
+    0x94, 0xbf, 0xba, 0x41, 0x9e, 0xf7, 0x78
 ])
 
 # Magic constant from derive_key()
 MAGIC_CONSTANT = 0xDEADBEEF
 
+# Fixed hardware ID used in the binary
+FIXED_HWID = 0xABCD1234
+
 
 def get_volume_serial_windows():
-    """Get C: drive volume serial on Windows"""
+    """Get C: drive volume serial on Windows (for reference)"""
     try:
         import ctypes
         kernel32 = ctypes.windll.kernel32
@@ -43,10 +49,16 @@ def get_volume_serial_windows():
         return None
 
 
-def get_volume_serial_linux():
-    """For Linux/demo, use a fixed value or read from /proc"""
-    print("[*] Linux detected - using demo value")
-    return 0x12345678  # Demo hardware ID
+def get_hardware_id():
+    """
+    Get hardware ID to match the binary's behavior
+    
+    NOTE: The binary uses a FIXED value (0xABCD1234) for CTF consistency.
+    This ensures all participants can decrypt the flag regardless of their machine.
+    """
+    # Always use the fixed HWID that matches the binary
+    print(f"[*] Using fixed hardware ID: 0x{FIXED_HWID:08X}")
+    return FIXED_HWID
 
 
 def derive_key(hardware_id):
@@ -71,11 +83,12 @@ def brute_force_decrypt():
     Useful when hardware ID is unknown
     """
     print("[*] Attempting brute-force decryption...")
-    print("[*] Searching for flags matching pattern: SBC{...}")
+    print("[*] Searching for flags matching pattern: SBC{...}\n")
     
-    # Try all possible hardware IDs (this is still fast for demo purposes)
-    # In reality, you'd narrow this down or use known hardware IDs
-    for hwid in range(0x10000000, 0x10000100):  # Small range for demo
+    # Try the known fixed HWID first
+    known_hwids = [FIXED_HWID, 0x12345678]
+    
+    for hwid in known_hwids:
         key = derive_key(hwid)
         plaintext = xor_decrypt(ENCRYPTED_FLAG, key)
         
@@ -84,21 +97,28 @@ def brute_force_decrypt():
             print(f"[+] Found valid flag with HWID: 0x{hwid:08X}")
             return plaintext, hwid
     
+    # If not found in known values, try broader range
+    print("[*] Not found in known values, expanding search...")
+    for hwid in range(0xABCD0000, 0xABCE0000):
+        key = derive_key(hwid)
+        plaintext = xor_decrypt(ENCRYPTED_FLAG, key)
+        
+        if plaintext.startswith(b'SBC{') and plaintext.endswith(b'}'):
+            print(f"[+] Found valid flag with HWID: 0x{hwid:08X}")
+            return plaintext, hwid
+    
     return None, None
 
 
 def main():
-    print("=" * 60)
+    print("=" * 70)
     print("  VAULT CHALLENGE DECRYPTOR")
     print("  Secure Byte Chronicles - Reverse Engineering Series")
-    print("=" * 60)
+    print("=" * 70)
     print()
     
-    # Detect OS and get hardware ID
-    if sys.platform.startswith('win'):
-        hardware_id = get_volume_serial_windows()
-    else:
-        hardware_id = get_volume_serial_linux()
+    # Get hardware ID (uses fixed value from binary)
+    hardware_id = get_hardware_id()
     
     if hardware_id is None:
         print("[!] Could not determine hardware ID")
@@ -109,13 +129,11 @@ def main():
         else:
             print("[!] Decryption failed")
             return
-    else:
-        print(f"[*] Hardware ID detected: 0x{hardware_id:08X}")
     
     # Derive the key
     derived_key = derive_key(hardware_id)
     print(f"[*] Derived key: 0x{derived_key:08X}")
-    print(f"[*] Key derivation: {hardware_id:08X} ⊕ {MAGIC_CONSTANT:08X} = {derived_key:08X}")
+    print(f"[*] Key derivation: 0x{hardware_id:08X} ⊕ 0x{MAGIC_CONSTANT:08X} = 0x{derived_key:08X}")
     print()
     
     # Decrypt the flag
@@ -123,9 +141,9 @@ def main():
     plaintext = xor_decrypt(ENCRYPTED_FLAG, derived_key)
     
     # Display result
-    print("\n" + "=" * 60)
+    print("\n" + "=" * 70)
     print("  DECRYPTION RESULT")
-    print("=" * 60)
+    print("=" * 70)
     
     try:
         flag_str = plaintext.decode('ascii')
@@ -139,22 +157,31 @@ def main():
             print("[!] Flag format unexpected - check your analysis")
     except UnicodeDecodeError:
         print("[!] Decryption produced non-ASCII data:")
-        print(f"    {plaintext.hex()}")
+        print(f"    Hex: {plaintext.hex()}")
         print("[!] This suggests an incorrect key or corrupted data")
     
-    print("\n" + "=" * 60)
-    print("  ANALYSIS SUMMARY")
-    print("=" * 60)
-    print("\n Vulnerability Assessment:")
-    print("  • Weak key derivation (hardware-based)")
-    print("  • Simple XOR encryption (symmetric)")
-    print("  • No authentication/integrity checks")
+    print("\n" + "=" * 70)
+    print("  VULNERABILITY ANALYSIS")
+    print("=" * 70)
+    print("\n Why This Challenge is Vulnerable:")
+    print("  • Fixed hardware ID (not actually reading system)")
+    print("  • Weak key derivation (simple XOR with constant)")
+    print("  • Simple XOR encryption (symmetric, no authentication)")
     print("  • Predictable magic constant (0xDEADBEEF)")
-    print("\n Real Ransomware Defense:")
-    print("  • Use proper CSPRNG for key generation")
-    print("  • Implement hybrid crypto (RSA + AES)")
-    print("  • Add HMAC for integrity verification")
-    print("  • Never derive keys from hardware IDs")
+    print("  • No integrity checks (HMAC/GCM)")
+    print()
+    print(" Real Ransomware Defense Mechanisms:")
+    print("  • Use cryptographically secure PRNG (CryptGenRandom)")
+    print("  • Implement hybrid encryption (RSA-4096 + AES-256)")
+    print("  • Add authenticated encryption (AES-GCM)")
+    print("  • Generate unique keys per victim")
+    print("  • Securely delete plaintext keys from memory")
+    print("  • Use proper key derivation functions (PBKDF2/Argon2)")
+    print()
+    print(" Key Takeaway:")
+    print("  Even with complete binary analysis, real ransomware using")
+    print("  RSA-4096 + AES-256 is mathematically unbreakable without")
+    print("  the attacker's private key. This is why backups are critical!")
     print()
 
 

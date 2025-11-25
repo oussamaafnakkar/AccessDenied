@@ -20,12 +20,13 @@
 #endif
 
 
-// Obfuscated flag (XOR encoded)
+// Obfuscated flag (XOR encoded with HWID=0xABCD1234)
+// Flag: SBC{r3v3rs3_3ng1n33r1ng_m4st3r}
 unsigned char encrypted_flag[] = {
-    0xe7, 0xd6, 0xd7, 0x2f, 0xcc, 0x99, 0xca, 0x82,
-    0xb0, 0xdf, 0xd3, 0xb3, 0xb5, 0x9a, 0xc2, 0x8e,
-    0xb4, 0x9b, 0xc6, 0xbb, 0xb5, 0x99, 0xca, 0xb3,
-    0xbf, 0xd6, 0xd3, 0x28, 0xb5, 0x9c, 0x11, 0x00
+    0x8c, 0xbf, 0xbe, 0x46, 0xa7, 0xf0, 0xa1, 0xeb,
+    0xdb, 0xb4, 0xba, 0xda, 0x9e, 0xf1, 0xa9, 0xe7,
+    0x9f, 0xf0, 0xad, 0xd2, 0x9e, 0xf0, 0xa1, 0xda,
+    0x94, 0xbf, 0xba, 0x41, 0x9e, 0xf7, 0x78, 0x00
 };
 
 // Anti-debugging check
@@ -40,21 +41,30 @@ int check_debugger() {
 }
 
 // Simulate getting hardware ID (for key derivation)
+// IMPORTANT: This uses a FIXED value for CTF consistency
 uint32_t get_hardware_id() {
+    // For CTF/educational purposes, use a fixed hardware ID
+    // This ensures all participants can decrypt the flag regardless of their machine
+    return 0xABCD1234;  // Fixed hardware ID
+    
+    /* Original implementation (commented out for reference):
+     * This would make the challenge machine-specific, which is bad for CTFs
+     * 
 #ifdef _WIN32
     DWORD volume_serial = 0;
     GetVolumeInformationA("C:\\", NULL, 0, &volume_serial, 
                           NULL, NULL, NULL, 0);
     return volume_serial;
 #else
-    // For Linux/demo purposes, use a fixed value
     return 0x12345678;
 #endif
+    */
 }
 
 // Derive encryption key from hardware ID
 uint32_t derive_key(uint32_t hwid) {
     // Weak key derivation (intentionally vulnerable)
+    // Real ransomware would use CryptGenRandom + proper KDF
     return hwid ^ 0xDEADBEEF;
 }
 
@@ -108,7 +118,7 @@ void vault_logic() {
     // Display result
     printf("╔═══════════════════════════════════════╗\n");
     printf("║ DECRYPTED FLAG:                       ║\n");
-    printf("║ %s ║\n", flag_buffer);
+    printf("║ %-37s ║\n", flag_buffer);
     printf("╚═══════════════════════════════════════╝\n\n");
     
     printf("[+] Congratulations! You've cracked the vault!\n");
@@ -127,18 +137,40 @@ int main() {
  *    - Tool: upx -d vault_challenge.exe
  * 
  * 2. Anti-Debugging: IsDebuggerPresent() check
- *    - Bypass: Patch JE to JMP, or use anti-anti-debug plugins
+ *    - Bypass: Patch JNZ to NOP, or use ScyllaHide plugin
  * 
- * 3. Key Derivation: Hardware-based (weak)
- *    - Analyze: GetVolumeInformation → XOR with 0xDEADBEEF
+ * 3. Key Derivation: Fixed hardware ID (0xABCD1234)
+ *    - Analyze: Fixed value XOR 0xDEADBEEF = 0x7532ACDB
+ *    - Note: Real malware would use actual system HWID
  * 
  * 4. Encryption: Simple XOR (easily reversible)
  *    - Reverse: Write Python decryptor
  * 
  * 5. Flag Format: SBC{r3v3rs3_3ng1n33r1ng_m4st3r}
  * 
+ * KEY DERIVATION EXAMPLE:
+ *   Hardware ID:  0xABCD1234
+ *   Magic XOR:    0xDEADBEEF
+ *                 ___________
+ *   Derived Key:  0x7532ACDB
+ * 
  * DETECTION SIGNATURES:
- * - Imports: IsDebuggerPresent, GetVolumeInformationA
+ * - Imports: IsDebuggerPresent
  * - Strings: "Debugger detected", "THE VAULT CHALLENGE"
  * - Entropy: High (due to UPX packing)
+ * - Constants: 0xDEADBEEF, 0xABCD1234
+ * 
+ * WHY FIXED HWID FOR CTF?
+ * - Ensures all participants can solve the challenge
+ * - Cross-platform compatibility (Windows/Linux/macOS)
+ * - Reproducible results for verification
+ * - Still teaches the same RE concepts
+ * 
+ * REAL-WORLD COMPARISON:
+ * Real ransomware would:
+ * - Actually read system volume serial
+ * - Use CryptGenRandom for proper randomness
+ * - Implement AES-256 + RSA-4096 hybrid encryption
+ * - Generate unique keys per victim
+ * - Store encrypted keys, delete plaintext keys
  */
