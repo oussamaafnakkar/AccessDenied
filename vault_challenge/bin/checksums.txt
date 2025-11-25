@@ -14,11 +14,12 @@
 
 # Unpacked binary (vault_challenge.exe)
 # Replace this line with actual hash after compilation
-7187fed220840e070d030b3b45d5e23789b08de04d9a047cad9d3aead592f179  vault_challenge.exe
+
+09022438c6c9ba7888d96ab7b8c220406cc51413bb8ca866611fec3574045325   vault_challenge.exe
 
 # Packed binary (vault_challenge_packed.exe)
 # Replace this line with actual hash after UPX packing
-59a37a62cee9ab2ebdb55f1a3899089816069d1ddbab0118fd25d7ca76c32341  vault_challenge_packed.exe
+9db3fa63aeacd69873deb976503c7c8358af37bc14564a61613a328272913b5a  vault_challenge_packed.exe
 # Notes:
 # - These hashes should match the binaries distributed in releases
 # - Users can verify file integrity before analysis
