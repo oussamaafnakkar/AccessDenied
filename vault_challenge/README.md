@@ -180,7 +180,6 @@ python3 vault_decryptor.py
 
 See `solution/` directory for:
 - `vault_decryptor.py` - Automated solver
-- `walkthrough.md` - Detailed step-by-step guide
 - `entropy_analyzer.py` - Packer detection tool
 
 **Full writeup:** https://www.sbytec.com/accessdenied/vault-challenge/
