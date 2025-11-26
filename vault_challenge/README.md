@@ -53,7 +53,7 @@ This challenge uses a **fixed hardware ID** (`0xABCD1234`) instead of reading th
 Hardware ID:  0xABCD1234  (Fixed value)
 Magic XOR:    0xDEADBEEF  (Hardcoded constant)
              ___________
-Derived Key:  0x7532ACDB  (Result)
+Derived Key:  0x7560ACDB  (Result)
 ```
 
 **Educational Note:** Real-world ransomware would:
@@ -100,7 +100,7 @@ wine vault_challenge_packed.exe
 
 # Expected output:
 # [*] Hardware ID: 0xABCD1234
-# [*] Derived Key: 0x7532ACDB
+# [*] Derived Key: 0x7560ACDB
 # [*] Attempting decryption...
 #
 # The flag is encrypted - your goal: reverse engineer to decrypt it!
@@ -154,7 +154,7 @@ Look for these functions in Ghidra:
 
 The key is derived from:
 ```
-0xABCD1234 ⊕ 0xDEADBEEF = 0x7532ACDB
+0xABCD1234 ⊕ 0xDEADBEEF = 0x7560ACDB
 ```
 
 This is NOT cryptographically secure. You can replicate this in Python and decrypt the flag!
@@ -180,7 +180,6 @@ python3 vault_decryptor.py
 
 See `solution/` directory for:
 - `vault_decryptor.py` - Automated solver
-- `walkthrough.md` - Detailed step-by-step guide
 - `entropy_analyzer.py` - Packer detection tool
 
 **Full writeup:** https://www.sbytec.com/accessdenied/vault-challenge/
@@ -214,11 +213,11 @@ Entropy:        7.85 bits/byte (packed)
 
 ### Vulnerabilities (Intentional)
 
-**Fixed Hardware ID** - Not reading actual system (CTF design choice)  
-**Weak Key Derivation** - Simple XOR with magic constant  
-**Weak Encryption** - XOR with 4-byte repeating key  
-**No Authentication** - No HMAC or integrity verification  
-**Magic Constant** - 0xDEADBEEF is hardcoded and easily found
+✗ **Fixed Hardware ID** - Not reading actual system (CTF design choice)  
+✗ **Weak Key Derivation** - Simple XOR with magic constant  
+✗ **Weak Encryption** - XOR with 4-byte repeating key  
+✗ **No Authentication** - No HMAC or integrity verification  
+✗ **Magic Constant** - 0xDEADBEEF is hardcoded and easily found
 
 **Comparison to Real Ransomware:**
 
@@ -272,7 +271,7 @@ $ ./vault_challenge.exe
   ╚══════════════════════════════════════╝
 
 [*] Hardware ID: 0xABCD1234
-[*] Derived Key: 0x7532ACDB
+[*] Derived Key: 0x7560ACDB
 [*] Attempting decryption...
 
 ╔═══════════════════════════════════════╗
@@ -314,11 +313,11 @@ rule Vault_Challenge {
 ### Behavioral Indicators
 
 Monitor for:
--  High file entropy (7.0+ bits/byte)
--  UPX packer signatures in strings
--  `IsDebuggerPresent` API calls
--  XOR operations on buffers
--   Magic constants: 0xDEADBEEF, 0xABCD1234
+- High file entropy (7.0+ bits/byte)
+- UPX packer signatures in strings
+- `IsDebuggerPresent` API calls
+- XOR operations on buffers
+- Magic constants: 0xDEADBEEF, 0xABCD1234
 
 ---
 
@@ -391,7 +390,7 @@ MIT License - See [LICENSE](../LICENSE) for details.
 
 **Author:** Oussama Afnakkar  
 **Blog:** [Secure Byte Chronicles](https://www.sbytec.com)  
-**Date:** November 24, 2025  
+**Date:** November 26, 2025  
 **Version:** 1.0
 
 ---
