@@ -140,7 +140,7 @@ int main() {
  *    - Bypass: Patch JNZ to NOP, or use ScyllaHide plugin
  * 
  * 3. Key Derivation: Fixed hardware ID (0xABCD1234)
- *    - Analyze: Fixed value XOR 0xDEADBEEF = 0x7532ACDB
+ *    - Analyze: Fixed value XOR 0xDEADBEEF = 0x7560ACDB
  *    - Note: Real malware would use actual system HWID
  * 
  * 4. Encryption: Simple XOR (easily reversible)
@@ -152,7 +152,7 @@ int main() {
  *   Hardware ID:  0xABCD1234
  *   Magic XOR:    0xDEADBEEF
  *                 ___________
- *   Derived Key:  0x7532ACDB
+ *   Derived Key:  0x7560ACDB
  * 
  * DETECTION SIGNATURES:
  * - Imports: IsDebuggerPresent
