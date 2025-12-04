@@ -206,16 +206,35 @@ def pack_binary(input_file, output_file, stub_file='stub.bin'):
 # FLAG ENCRYPTION HELPER
 # ============================================================================
 
+def rc4_encrypt_native(key, plaintext):
+    """Native RC4 implementation (no external dependencies)"""
+    # KSA
+    S = list(range(256))
+    j = 0
+    for i in range(256):
+        j = (j + S[i] + key[i % len(key)]) % 256
+        S[i], S[j] = S[j], S[i]
+    
+    # PRGA
+    encrypted = bytearray()
+    i = j = 0
+    for byte in plaintext:
+        i = (i + 1) % 256
+        j = (j + S[i]) % 256
+        S[i], S[j] = S[j], S[i]
+        K = S[(S[i] + S[j]) % 256]
+        encrypted.append(byte ^ K)
+    
+    return bytes(encrypted)
+
+
 def encrypt_flag_for_binary(flag_plaintext, xor_key_int, rc4_key):
     """
     Encrypt the flag with RC4 → XOR (reverse order of decryption)
     This generates the bytes to put in encrypted_flag[] array
     """
-    from Crypto.Cipher import ARC4
-    
     # Stage 1: RC4 encrypt
-    cipher = ARC4.new(rc4_key)
-    rc4_encrypted = cipher.encrypt(flag_plaintext.encode())
+    rc4_encrypted = rc4_encrypt_native(rc4_key, flag_plaintext.encode())
     
     # Stage 2: XOR encrypt
     xor_key_bytes = struct.pack('<I', xor_key_int)
