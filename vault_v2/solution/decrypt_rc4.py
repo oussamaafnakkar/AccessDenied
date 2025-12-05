@@ -27,15 +27,13 @@ FIXED_TIMESTAMP = 0x65432100
 MAGIC_1 = 0xDEADBEEF
 MAGIC_2 = 0x13371337
 
-# XOR-decrypted data (output from decrypt_xor.py)
-# This should be filled with the result from Stage 1
-XOR_DECRYPTED_DATA = bytes([
-    # Placeholder - replace with actual XOR-decrypted bytes
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
-    0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00
+# Encrypted flag (from vault_v2.c)
+ENCRYPTED_FLAG = bytes([
+    0xad, 0x61, 0xbf, 0x75, 0xe1, 0x91, 0x32, 0x41,
+    0x79, 0xdb, 0x35, 0xac, 0x78, 0x7a, 0x10, 0x22,
+    0xe1, 0xec, 0x2f, 0x2c, 0x32, 0xf8, 0x14, 0x36,
+    0x34, 0x78, 0x62, 0x1e, 0xbd, 0x18, 0xa5, 0x10,
+    0x28, 0x7c
 ])
 
 # ============================================================================
@@ -75,6 +73,17 @@ def derive_rc4_key():
         rc4_key.append(byte)
     
     return bytes(rc4_key), xor_key
+
+
+def xor_decrypt(data, key):
+    """XOR decrypt with 4-byte rotating key (Stage 1)"""
+    key_bytes = struct.pack('<I', key)
+    decrypted = bytearray()
+    
+    for i, byte in enumerate(data):
+        decrypted.append(byte ^ key_bytes[i % 4])
+    
+    return bytes(decrypted)
 
 
 # ============================================================================
@@ -143,8 +152,8 @@ def visualize_rc4(key, data):
     S = rc4_init(key)
     i = j = 0
     
-    print("    Step | i | j | S[i] | S[j] | K | Data | Output")
-    print("    " + "-" * 54)
+    print("    Step | i | j | S[i] | S[j] | K | Data | Output | ASCII")
+    print("    " + "-" * 64)
     
     for step, byte in enumerate(data[:10]):
         i = (i + 1) % 256
@@ -153,9 +162,10 @@ def visualize_rc4(key, data):
         S[i], S[j] = S[j], S[i]
         K = S[(S[i] + S[j]) % 256]
         output = byte ^ K
+        ascii_char = chr(output) if 32 <= output < 127 else '?'
         
         print(f"    {step:4d} | {i:3d} | {j:3d} | {S[i]:4d} | {S[j]:4d} | "
-              f"{K:3d} | {byte:4d} | {output:4d} ('{chr(output) if 32 <= output < 127 else '?'}')")
+              f"{K:3d} | {byte:4d} | {output:4d} | '{ascii_char}'")
     
     print("    ...")
     print()
@@ -186,12 +196,15 @@ def main():
         print(f"      rc4_key[{i:2d}] = (xor_key >> {(i % 4) * 8:2d}) & 0xFF = 0x{byte_value:02x}")
     print()
     
-    # Check if we have actual data
-    if XOR_DECRYPTED_DATA == bytes(len(XOR_DECRYPTED_DATA)):
-        print("[!] No XOR-decrypted data loaded")
-        print("[!] Run decrypt_xor.py first to get Stage 1 output")
-        print()
-        return
+    # Perform Stage 1 decryption first
+    print("[*] Stage 1: XOR Decryption...")
+    xor_decrypted = xor_decrypt(ENCRYPTED_FLAG, xor_key)
+    print(f"    XOR-Encrypted:  {ENCRYPTED_FLAG[:16].hex()}...")
+    print(f"    XOR-Decrypted:  {xor_decrypted[:16].hex()}...")
+    print()
+    
+    print("[*] Stage 2: RC4 Decryption")
+    print()
     
     print("[*] Initializing RC4 S-box (KSA)...")
     S = rc4_init(rc4_key)
@@ -200,12 +213,12 @@ def main():
     print()
     
     # Visualize algorithm
-    visualize_rc4(rc4_key, XOR_DECRYPTED_DATA)
+    visualize_rc4(rc4_key, xor_decrypted)
     
     print("[*] Decrypting with RC4 (PRGA)...")
-    rc4_decrypted = rc4_crypt(S, XOR_DECRYPTED_DATA)
+    rc4_decrypted = rc4_crypt(S, xor_decrypted)
     
-    print(f"    RC4-Encrypted: {XOR_DECRYPTED_DATA[:16].hex()}...")
+    print(f"    RC4-Encrypted: {xor_decrypted[:16].hex()}...")
     print(f"    RC4-Decrypted: {rc4_decrypted[:16].hex()}...")
     print()
     
@@ -223,15 +236,24 @@ def main():
         if flag.startswith('SBC{') and flag.endswith('}'):
             print("[+] ✓ Valid flag format!")
             print("[+] ✓ Challenge solved!")
+            print()
+            
+            # Extract and display session ID
+            if '_v2}' in flag:
+                parts = flag[4:-1].split('_')  # Remove SBC{ and }
+                if len(parts) >= 3:
+                    session_id = parts[-2]  # Second to last part
+                    print(f"[*] Session ID: {session_id}")
+                    print(f"    Calculation: 0x{FIXED_TIMESTAMP:08X} ⊕ 0x12345678 = 0x{session_id}")
         else:
             print("[!] Flag format unexpected")
-            print("[!] Expected: SBC{...}")
+            print("[!] Expected: SBC{d3crypt3d_53ss10n_<session_id>_v2}")
     except UnicodeDecodeError:
         print("[!] RC4 decryption produced non-ASCII data")
         print("[!] Possible issues:")
         print("    - Wrong RC4 key derivation")
         print("    - Incorrect XOR-decrypted input")
-        print("    - Key derivation algorithm changed")
+        print("    - Key derivation algorithm mismatch")
         print()
         print(f"Decrypted bytes: {rc4_decrypted.hex()}")
     
@@ -257,6 +279,11 @@ def main():
     print("  • Related-key attacks")
     print("  • Deprecated in TLS/WEP")
     print("  • Still fast and simple to implement")
+    print()
+    print("Real malware uses stronger crypto:")
+    print("  • AES-256 (symmetric encryption)")
+    print("  • RSA-4096 (key protection)")
+    print("  • ChaCha20 (modern stream cipher)")
     print()
 
 
