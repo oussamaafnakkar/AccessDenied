@@ -127,8 +127,7 @@ def encrypt_key(key, encrypt_byte):
 # ============================================================================
 # PACKER
 # ============================================================================
-
-def pack_binary(input_file, output_file, stub_file='stub.bin'):
+def pack_binary(input_file, output_file, stub_file='bin/stub.bin'):
     """Main packing function"""
     
     print("[*] Reading unpacked binary...")

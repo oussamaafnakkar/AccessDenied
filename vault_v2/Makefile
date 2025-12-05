@@ -45,17 +45,17 @@ $(UNPACKED): $(SRC_DIR)/vault_v2.c
 	$(CC) $(CFLAGS) $< -o $@
 	@echo "[+] Unpacked binary created: $@"
 
-# Step 3: Assemble packer stub
+# Step 3: Assemble packer stub (auto-rebuild if missing or changed)
 $(STUB): $(SRC_DIR)/packer_stub.asm
 	@echo "[*] Assembling packer stub..."
 	@mkdir -p $(BIN_DIR)
 	$(NASM) -f bin $< -o $@
 	@echo "[+] Stub created: $@"
 
-# Step 4: Pack the binary
-$(PACKED): $(UNPACKED) $(SRC_DIR)/packer.py
+# Step 4: Pack the binary (depends on unpacked binary AND stub)
+$(PACKED): $(UNPACKED) $(STUB) $(SRC_DIR)/packer.py
 	@echo "[*] Packing binary..."
-	$(PYTHON) $(SRC_DIR)/packer.py $(UNPACKED) $@
+	$(PYTHON) $(SRC_DIR)/packer.py $(UNPACKED) $@ $(STUB)
 	@echo "[+] Packed binary created: $@"
 
 # ============================================================================
@@ -107,13 +107,14 @@ checksums: $(PACKED) $(UNPACKED)
 clean:
 	@echo "[*] Cleaning build artifacts..."
 	rm -f $(BIN_DIR)/*.exe
-	rm -f $(BIN_DIR)/*.bin
 	rm -f $(BIN_DIR)/checksums.txt
 	rm -f $(BIN_DIR)/*.png
 	@echo "[+] Cleanup complete"
+	@echo "[*] Note: stub.bin preserved (needed for packing)"
 
 clean-all: clean
-	@echo "[*] Removing bin directory..."
+	@echo "[*] Removing stub and bin directory..."
+	rm -f $(STUB)
 	rm -rf $(BIN_DIR)
 
 # ============================================================================
@@ -132,8 +133,8 @@ help:
 	@echo "  make strings          - Extract strings"
 	@echo "  make file-info        - Show file information"
 	@echo "  make checksums        - Generate SHA256/MD5 checksums"
-	@echo "  make clean            - Remove build artifacts"
-	@echo "  make clean-all        - Remove entire bin directory"
+	@echo "  make clean            - Remove build artifacts (keeps stub.bin)"
+	@echo "  make clean-all        - Remove everything including stub.bin"
 	@echo "  make help             - Show this help"
 	@echo ""
 	@echo "Prerequisites:"
