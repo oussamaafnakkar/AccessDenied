@@ -1,110 +1,79 @@
 ; ============================================================================
-; VAULT CHALLENGE v2 - Custom Packer Stub
-; ============================================================================
-; Purpose: Unpacks the XOR-encrypted .packed section at runtime
+; VAULT CHALLENGE v2 - Packer Stub (explicit E9 placeholder)
+; - Contains MOV ECX, imm32 (B9 imm32) for packed_size (patched by packer.py)
+; - Contains MOV EDI, imm32 (BF imm32) for dest VA (patched by packer.py)
+; - Contains explicit E9 00 00 00 00 placeholder for original OEP jump (patched)
+; - Decrypts 16-byte XOR key (XOR with 0x42), XOR-decrypts payload with rotating key
 ;
-; Algorithm:
-;   1. Save all registers (PUSHAD)
-;   2. Get base address (CALL trick)
-;   3. Decrypt XOR key (16 bytes)
-;   4. XOR decrypt .packed section
-;   5. Copy to original .text location
-;   6. Fix imports dynamically (LoadLibrary + GetProcAddress)
-;   7. Restore registers (POPAD)
-;   8. Jump to Original Entry Point (OEP)
-;
-; Detection Signatures:
-;   - PUSHAD at entry (0x60)
-;   - CALL $+5 (position-independent code)
-;   - XOR decryption loop
-;   - POPAD before OEP jump (0x61)
-;
-; Assemble: nasm -f bin packer_stub.asm -o stub.bin
+; Assemble: nasm -f bin src/packer_stub.asm -o bin/stub.bin
 ; ============================================================================
 
 BITS 32
-ORG 0x00401000  ; Default PE entry point
-
-; ============================================================================
-; ENTRY POINT
-; ============================================================================
+ORG 0x00401000
 
 _start:
-    PUSHAD                      ; Save all registers (signature: 0x60)
-    
-    ; Get current EIP (position-independent code trick)
+    PUSHAD                      ; save regs
+
+    ; position independent base
     CALL get_eip
 get_eip:
-    POP  EBP                    ; EBP = current EIP
-    SUB  EBP, (get_eip - _start)  ; EBP = base address of stub
-    
-    ; Setup pointers
-    LEA  ESI, [EBP + xor_key]           ; ESI = encrypted XOR key
-    LEA  EDI, [EBP + decrypted_key]     ; EDI = decrypted key buffer
-    MOV  ECX, 16                        ; Key length
-    MOV  AL, 0x42                       ; Decrypt key for the key
-    
-    ; Decrypt the XOR key itself
+    POP  EBP
+    SUB  EBP, (get_eip - _start)
+
+    ; --- decrypt XOR key (16 bytes) ---
+    LEA  ESI, [EBP + xor_key]       ; encrypted key bytes
+    LEA  EDI, [EBP + decrypted_key] ; dest buffer for decrypted key
+    MOV  ECX, 16
 decrypt_key_loop:
-    LODSB                       ; AL = [ESI++]
-    XOR  AL, 0x42               ; Decrypt with simple XOR
-    STOSB                       ; [EDI++] = AL
+    LODSB
+    XOR  AL, KEY_XOR_BYTE
+    STOSB
     LOOP decrypt_key_loop
-    
-    ; Setup for main decryption
-    LEA  ESI, [EBP + packed_data]       ; ESI = encrypted .packed section
-    MOV  EDI, 0x00402000                ; EDI = destination (.text location)
-    MOV  ECX, packed_size               ; ECX = size of packed data
-    LEA  EBX, [EBP + decrypted_key]     ; EBX = XOR key (16 bytes)
-    XOR  EDX, EDX                       ; EDX = key index
-    
-    ; Main decryption loop (XOR with rotating 16-byte key)
+
+    ; --- packed size (patched by packer.py via B9 imm32) ---
+    ; mov ecx, <packed_size>
+    mov ecx, 0x00001000      ; B9 imm32 placeholder -> patched to actual packed_size
+
+    ; --- destination VA (patched by packer.py via BF imm32) ---
+    ; mov edi, <dest_va>
+    mov edi, 0x00402000      ; BF imm32 placeholder -> patched to target VA
+
+    ; EBX -> pointer to decrypted key (16 bytes)
+    LEA  EBX, [EBP + decrypted_key]
+    XOR  EDX, EDX            ; key index = 0
+
 decrypt_main_loop:
-    LODSB                       ; AL = [ESI++]
-    XOR  AL, BYTE [EBX + EDX]   ; XOR with key[index]
-    STOSB                       ; [EDI++] = AL
-    INC  EDX                    ; index++
-    AND  EDX, 0x0F              ; index %= 16 (wrap around)
+    LODSB
+    XOR  AL, BYTE [EBX + EDX]
+    STOSB                     ; store to [EDI]
+    INC  EDI
+    INC  EDX
+    AND  EDX, 0x0F
     LOOP decrypt_main_loop
-    
-    ; Fix imports (simplified - assumes LoadLibrary/GetProcAddress available)
-    ; In real implementation, would dynamically resolve all imports
-    ; For CTF simplicity, imports are handled by unpacked code
-    
-    ; Cleanup and jump to OEP
-    POPAD                       ; Restore all registers (signature: 0x61)
-    
-    ; Jump to Original Entry Point (will be patched by packer.py)
-    JMP  original_entry_point
-    
-; ============================================================================
-; DATA SECTION (Will be filled by packer.py)
-; ============================================================================
+
+    POPAD
+
+    ; --- explicit JMP placeholder (E9 rel32) to patch to original OEP ---
+    ; packer.py searches for 0xE9 and writes rel32 after it.
+    db 0xE9, 0x00, 0x00, 0x00, 0x00
+
+; ---------------------------------------------------------------------------
+; DATA (patched / appended by packer.py)
+; ---------------------------------------------------------------------------
+
+KEY_XOR_BYTE equ 0x42
 
 xor_key:
-    ; 16-byte XOR key (encrypted with 0x42)
-    ; Will be filled: { 0x13^0x42, 0x37^0x42, 0xDE^0x42, ... }
-    DB 0x51, 0x75, 0x9C, 0xEF, 0xFC, 0xAD, 0x88, 0xBC
-    DB 0xF8, 0xFC, 0xB2, 0x4F, 0x82, 0x9C, 0x00, 0x42
+    ; encrypted XOR key (16 bytes) - can be overwritten by packer.py if desired
+    db 0x51,0x75,0x9C,0xEF,0xFC,0xAD,0x88,0xBC,0xF8,0xFC,0xB2,0x4F,0x82,0x9C,0x00,0x42
 
 decrypted_key:
-    ; Buffer for decrypted key (16 bytes)
-    TIMES 16 DB 0x00
+    times 16 db 0x00
 
+; packed_data label: actual encrypted bytes are appended by packer.py after the stub
 packed_data:
-    ; Encrypted .text section data (will be appended by packer.py)
-    ; Format: XOR encrypted with the 16-byte key
-    ; This is a placeholder - actual data appended during packing
+    ; (no static bytes here — packer.py appends encrypted .text bytes after the stub)
 
-packed_size EQU 0x1000  ; Will be patched by packer.py with actual size
-
-original_entry_point:
-    ; Will be patched by packer.py to point to real OEP
-    ; Placeholder: infinite loop for safety
-    JMP $
-
-; ============================================================================
-; STUB END MARKER (for packer.py to find data insertion point)
-; ============================================================================
 stub_end:
-    DB "STUB_END_MARKER"
+    db "STUB_END_MARKER"
+
