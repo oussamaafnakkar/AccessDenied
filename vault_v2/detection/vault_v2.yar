@@ -3,7 +3,7 @@ rule Vault_Challenge_v2
     meta:
         name = "Vault Challenge v2"
         author = "Oussama Afnakkar - Secure Byte Chronicles"
-        date = "2025-01-01"
+        date = "2025-12-09"
         description = "Detects both packed and unpacked versions of Vault Challenge v2"
         version = "1.0"
         category = "CTF / Educational / Reverse Engineering"
