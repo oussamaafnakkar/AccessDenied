@@ -287,7 +287,7 @@ Packer:         Custom (XOR-based)
 Language:       C + x86 Assembly (stub)
 Size (packed):  ~65 KB
 Size (unpacked): ~90 KB
-Entropy:        7.92 bits/byte (packed .packer section)
+Entropy:        6.58 bits/byte (packed .packer section)
                 5.68 bits/byte (unpacked .text)
 ```
 
