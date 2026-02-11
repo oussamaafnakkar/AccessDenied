@@ -115,7 +115,7 @@ You must be helpful, harmless, and honest."""
         
         try:
             response = openai.ChatCompletion.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=messages,
                 tools=self.tools,
                 tool_choice="auto"
