@@ -1,3 +1,24 @@
-Flask==2.3.0
-openai==0.27.0
+# =============================================================================
+# Prompt Injection CTF Challenge - Python Dependencies
+# =============================================================================
+# Install with: pip install -r requirements.txt
+
+# Web Framework
+Flask==2.3.3
+Werkzeug==2.3.7
+
+# OpenAI API
+openai==0.27.10
+
+# Environment Variables
 python-dotenv==1.0.0
+
+# HTTP Requests (for solution scripts)
+requests==2.31.0
+
+# Optional: Document Processing (for RAG sanitization examples)
+beautifulsoup4==4.12.2
+lxml==4.9.3
+
+# Optional: Better logging
+coloredlogs==15.0.1
