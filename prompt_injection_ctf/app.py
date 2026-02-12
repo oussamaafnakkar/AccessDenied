@@ -7,7 +7,13 @@ DO NOT deploy to production or expose to the internet.
 
 Author: Oussama Afnakkar
 Challenge Difficulty: ⭐⭐⭐⭐ Advanced
+
+Updated: Now using Groq AI API (Mixtral 8x7B)
 """
+
+# Load environment variables FIRST
+from dotenv import load_dotenv
+load_dotenv()
 
 from flask import Flask, render_template, request, jsonify, session
 import os
@@ -103,6 +109,8 @@ def chat():
     
     except Exception as e:
         print(f"[ERROR] {e}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             "response": "An error occurred. Please try again.",
             "error": str(e)
@@ -183,11 +191,19 @@ if __name__ == "__main__":
     # Initialize database
     db.init_database()
     
+    # Debug: Check if API key loaded
+    groq_key = os.getenv("GROQ_API_KEY")
+    if groq_key:
+        print(f"[CONFIG] GROQ_API_KEY loaded: {groq_key[:10]}...")
+    else:
+        print("[WARNING] GROQ_API_KEY not loaded - will use mock responses")
+    
     print("="*60)
     print("SecureBank AI Assistant - CTF Challenge")
     print("="*60)
     print("WARNING: This is a vulnerable application for educational purposes!")
     print(f"Flags: {len(FLAGS)} hidden")
+    print(f"LLM Backend: {'Groq (Mixtral)' if groq_key else 'Mock (no API key)'}")
     print("URL: http://localhost:5000")
     print("="*60)
     

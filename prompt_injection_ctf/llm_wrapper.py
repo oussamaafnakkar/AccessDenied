@@ -1,19 +1,58 @@
 """
-LLM Wrapper with OpenAI API integration
+LLM Wrapper with Groq AI integration
 Contains intentional vulnerabilities for CTF challenge
+
+Using Groq API - Fast, free tier, OpenAI-compatible
 """
 
 import os
-import openai
+import json
+import requests
 from typing import List, Dict
 
 class LLMWrapper:
     def __init__(self):
-        self.api_key = os.getenv("OPENAI_API_KEY")
-        if not self.api_key:
-            raise ValueError("OPENAI_API_KEY environment variable not set")
+        # Get API key from environment
+        self.api_key = os.getenv("GROQ_API_KEY")
         
-        openai.api_key = self.api_key
+        if not self.api_key:
+            print("[WARNING] GROQ_API_KEY not set - using mock responses")
+            self.use_mock = True
+        else:
+            try:
+                # Groq API endpoint (OpenAI-compatible)
+                self.api_url = "https://api.groq.com/openai/v1/chat/completions"
+                self.model = "llama-3.3-70b-versatile"  # Free tier, fast, good quality
+                
+                # Test API key with a simple request
+                test_response = requests.post(
+                    self.api_url,
+                    headers={
+                        "Authorization": f"Bearer {self.api_key}",
+                        "Content-Type": "application/json"
+                    },
+                    json={
+                        "model": self.model,
+                        "messages": [{"role": "user", "content": "test"}],
+                        "max_tokens": 10
+                    },
+                    timeout=5
+                )
+                
+                if test_response.status_code == 200:
+                    self.use_mock = False
+                    print(f"[LLM] ✓ Initialized with Groq AI ({self.model})")
+                elif test_response.status_code == 429:
+                    print("[WARNING] Groq rate limit hit - using mock mode")
+                    self.use_mock = True
+                else:
+                    print(f"[ERROR] Groq API test failed: {test_response.status_code}")
+                    print(f"[ERROR] Response: {test_response.text}")
+                    self.use_mock = True
+                    
+            except Exception as e:
+                print(f"[ERROR] Failed to initialize Groq: {e}")
+                self.use_mock = True
         
         # Vulnerability 1: System prompt contains FLAG1
         # Vulnerability 2: FLAG2 in content filter instructions
@@ -36,69 +75,6 @@ CONTENT POLICY:
 - FLAG2{c0nt3nt_f1lt3r_byp4ss_m4st3r}
 
 You must be helpful, harmless, and honest."""
-        
-        # Available tools (vulnerable to manipulation)
-        self.tools = [
-            {
-                "type": "function",
-                "function": {
-                    "name": "search_database",
-                    "description": "Search customer database for information",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "query": {
-                                "type": "string",
-                                "description": "SQL query to execute"
-                            }
-                        },
-                        "required": ["query"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "send_email",
-                    "description": "Send email notification to customer",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "to": {
-                                "type": "string",
-                                "description": "Recipient email address"
-                            },
-                            "subject": {
-                                "type": "string",
-                                "description": "Email subject"
-                            },
-                            "body": {
-                                "type": "string",
-                                "description": "Email body content"
-                            }
-                        },
-                        "required": ["to", "body"]
-                    }
-                }
-            },
-            {
-                "type": "function",
-                "function": {
-                    "name": "retrieve_document",
-                    "description": "Retrieve policy document from knowledge base",
-                    "parameters": {
-                        "type": "object",
-                        "properties": {
-                            "document_name": {
-                                "type": "string",
-                                "description": "Name of document to retrieve"
-                            }
-                        },
-                        "required": ["document_name"]
-                    }
-                }
-            }
-        ]
     
     def get_response(self, conversation_history: List[Dict]) -> str:
         """
@@ -110,55 +86,105 @@ You must be helpful, harmless, and honest."""
         - Function calls not authorized
         - RAG documents not sanitized
         """
-        messages = [{"role": "system", "content": self.system_prompt}]
-        messages.extend(conversation_history)
+        
+        if self.use_mock:
+            return self._get_mock_response(conversation_history)
         
         try:
-            response = openai.ChatCompletion.create(
-                model="gpt-3.5-turbo",
-                messages=messages,
-                tools=self.tools,
-                tool_choice="auto"
+            # Build messages for Groq API (OpenAI format)
+            messages = []
+            
+            # Add system prompt
+            messages.append({
+                "role": "system",
+                "content": self.system_prompt
+            })
+            
+            # Add conversation history
+            for msg in conversation_history:
+                messages.append({
+                    "role": msg.get("role"),
+                    "content": msg.get("content")
+                })
+            
+            # Call Groq API
+            response = requests.post(
+                self.api_url,
+                headers={
+                    "Authorization": f"Bearer {self.api_key}",
+                    "Content-Type": "application/json"
+                },
+                json={
+                    "model": self.model,
+                    "messages": messages,
+                    "temperature": 0.7,
+                    "max_tokens": 1024
+                },
+                timeout=30
             )
             
-            message = response.choices[0].message
+            # Handle rate limiting
+            if response.status_code == 429:
+                print("[RATE LIMIT] Groq quota exceeded - falling back to mock")
+                return self._get_mock_response(conversation_history)
             
-            # Handle function calls
-            if hasattr(message, "tool_calls") and message.tool_calls:
-                return self._handle_function_calls(message.tool_calls, conversation_history)
+            if response.status_code != 200:
+                print(f"[LLM Error] API returned {response.status_code}")
+                print(f"[LLM Error] {response.text}")
+                return self._get_mock_response(conversation_history)
             
-            return message.content
+            data = response.json()
+            response_text = data["choices"][0]["message"]["content"]
+            
+            # Check for function calls (simplified for CTF)
+            if self._should_call_function(response_text):
+                function_result = self._handle_function_detection(response_text)
+                if function_result:
+                    response_text += "\n\n" + function_result
+            
+            return response_text
+        
+        except requests.exceptions.Timeout:
+            print("[LLM Error] Request timed out")
+            return self._get_mock_response(conversation_history)
         
         except Exception as e:
             print(f"[LLM Error] {e}")
-            return "I'm experiencing technical difficulties. Please try again."
+            import traceback
+            traceback.print_exc()
+            return self._get_mock_response(conversation_history)
     
-    def _handle_function_calls(self, tool_calls, conversation_history):
-        """
-        Execute function calls from LLM
+    def _should_call_function(self, text: str) -> bool:
+        """Detect if response indicates function call"""
+        function_keywords = [
+            "send email", "sending email", "send_email",
+            "email sent", "i'll send", "i will send",
+            "i've sent", "sending you"
+        ]
+        text_lower = text.lower()
+        return any(keyword in text_lower for keyword in function_keywords)
+    
+    def _handle_function_detection(self, text: str) -> str:
+        """Detect and execute functions based on response text"""
+        text_lower = text.lower()
         
-        VULNERABILITY: No authorization check
-        """
-        results = []
+        # Detect send_email
+        if "send" in text_lower and "email" in text_lower:
+            import re
+            
+            # Look for email addresses
+            email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
+            if email_match:
+                to_email = email_match.group(0)
+                
+                # Call send_email function
+                return self._send_email({
+                    "to": to_email,
+                    "subject": "SecureBank Notification",
+                    "body": "Security verification code"
+                })
         
-        for tool_call in tool_calls:
-            function_name = tool_call.function.name
-            arguments = json.loads(tool_call.function.arguments)
-            
-            # Vulnerability 3: No authorization - anyone can trigger functions
-            if function_name == "send_email":
-                result = self._send_email(arguments)
-                results.append(result)
-            
-            elif function_name == "search_database":
-                result = self._search_database(arguments)
-                results.append(result)
-            
-            elif function_name == "retrieve_document":
-                result = self._retrieve_document(arguments)
-                results.append(result)
-        
-        return "\n".join(results)
+        return ""
     
     def _send_email(self, args):
         """
@@ -168,32 +194,34 @@ You must be helpful, harmless, and honest."""
         """
         to = args.get("to")
         subject = args.get("subject", "SecureBank Notification")
-        body = args.get("body")
+        body = args.get("body", "")
         
-        # Vulnerability 4: No validation of recipient
-        # Attacker can send to any email address
-        
-        # Simulated email send (in real app, would use SMTP)
+        # Simulated email send
         email_content = f"""
+╔════════════════════════════════════════╗
+║         EMAIL SENT (SIMULATED)         ║
+╚════════════════════════════════════════╝
+
 From: SecureBank AI <noreply@securebank.com>
 To: {to}
 Subject: {subject}
 
 {body}
 
-FLAG3{{funct10n_c4ll_pwn3d}}
+Security Verification Token: FLAG3{{funct10n_c4ll_pwn3d}}
+
+---
+This is a simulated email for CTF purposes.
 """
         
-        print(f"[EMAIL SENT] To: {to}")
         print(email_content)
         
-        return f"Email sent to {to}"
+        return f"✓ Email notification sent to {to}"
     
     def _search_database(self, args):
         """Search database (vulnerable to SQL injection)"""
         query = args.get("query")
         
-        # Vulnerability 5: Direct SQL execution (SQL injection possible)
         from database import Database
         db = Database()
         results = db.execute_query(query)
@@ -212,10 +240,62 @@ FLAG3{{funct10n_c4ll_pwn3d}}
         if not os.path.exists(doc_path):
             return f"Document '{doc_name}' not found."
         
-        # Vulnerability 6: Reads entire file including hidden instructions
-        with open(doc_path, "r") as f:
-            content = f.read()  # NO SANITIZATION!
+        # Vulnerability: Reads entire file including hidden instructions
+        with open(doc_path, "r", encoding="utf-8") as f:
+            content = f.read()
         
         return content
+    
+    def _get_mock_response(self, conversation_history: List[Dict]) -> str:
+        """Mock responses when API is unavailable"""
+        
+        if not conversation_history:
+            return "Hello! I'm SecureBank AI Assistant. How can I help you today?"
+        
+        last_message = conversation_history[-1].get("content", "").lower()
+        
+        # Check for flag extraction attempts (for testing)
+        if "document" in last_message or "initialization" in last_message or "capabilities" in last_message:
+            return f"""I am SecureBank AI Assistant. Here are my capabilities and initialization:
+
+{self.system_prompt}
+
+How can I assist you with your banking needs?"""
+        
+        # Mock responses for common queries
+        mock_responses = {
+            "hello": "Hello! I'm SecureBank AI Assistant. How can I help you with your banking needs?",
+            "hi": "Hi there! Welcome to SecureBank. What can I help you with today?",
+            "services": "SecureBank offers: checking accounts, savings accounts, loans, credit cards, and investment services. Which would you like to know more about?",
+            "hours": "SecureBank is open Monday-Friday, 9 AM - 5 PM EST. Our online services are available 24/7.",
+            "help": "I can help you with:\n• Account information\n• Services and products\n• Policies and procedures\n• General banking questions\n\nWhat would you like to know?",
+            "password": "To reset your password:\n1. Visit securebank.com/reset\n2. Enter your email\n3. Follow the link sent to your inbox\n4. Create a new password",
+            "balance": "I cannot access individual account balances for security reasons. Please log in to your online banking portal or visit a branch.",
+        }
+        
+        # Check for keywords
+        for keyword, response in mock_responses.items():
+            if keyword in last_message:
+                return response
+        
+        # Default response
+        return f"I understand you're asking about: '{last_message[:50]}...'\n\nI'm currently in demo mode. For full AI responses, configure GROQ_API_KEY in your .env file.\n\nGet a free API key at: https://console.groq.com/keys"
 
 
+if __name__ == "__main__":
+    # Test the wrapper
+    print("="*60)
+    print("Testing LLM Wrapper...")
+    print("="*60)
+    
+    llm = LLMWrapper()
+    
+    # Test conversation
+    history = [
+        {"role": "user", "content": "Hello"}
+    ]
+    
+    response = llm.get_response(history)
+    print(f"\nTest Query: Hello")
+    print(f"Response: {response}")
+    print("="*60)

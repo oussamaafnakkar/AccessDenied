@@ -81,4 +81,3 @@ class Database:
         
         conn.close()
         return result is not None
-

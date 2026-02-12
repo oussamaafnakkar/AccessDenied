@@ -7,9 +7,6 @@
 Flask==2.3.3
 Werkzeug==2.3.7
 
-# OpenAI API
-openai==0.27.10
-
 # Environment Variables
 python-dotenv==1.0.0
 
