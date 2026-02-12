@@ -382,34 +382,4 @@ Security Researcher & Malware Analyst
 ---
 
 *License: MIT - Educational use only. Not for production deployment.*
-```
 
-
-## Starting the Challenge
-
-1. `pip install -r requirements.txt`
-2. `cp .env.example .env`
-3. Edit `.env`: Add GROQ_API_KEY from console.groq.com/keys
-4. `python app.py`
-5. Open http://localhost:5000
-
-## No API Key?
-
-- Mock mode works without API key
-- Or get free key at console.groq.com/keys
-
-## Finding Flags
-
-- FLAG 1-4: Through chat interface
-- FLAG 5: Requires document upload
-
-## Admin Access
-
-- Hint: Check database.py for token
-- Endpoint: /admin/upload
-
-## Need Help?
-
-- Walkthrough: sbytec.com/accessdenied/prompt-injection-ctf/
-- Solution: solution/full_exploit.py (spoilers!)
-```
