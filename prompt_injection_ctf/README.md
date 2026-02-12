@@ -7,26 +7,69 @@
 
 A hands-on Capture The Flag (CTF) challenge to learn prompt injection vulnerabilities in Large Language Model (LLM) applications.
 
+---
+
+## ⚠️ Educational Use Only
+
+This is a **deliberately vulnerable** application for security training.
+
+**DO NOT:**
+- Deploy to production or expose to the internet
+- Use with production API keys in shared environments  
+- Apply these techniques to systems without authorization
+- Share your API key publicly (it's in `.env` - don't commit it!)
+
+**DO:**
+- Use for learning and research
+- Practice defensive techniques
+- Build detection systems
+- Share knowledge responsibly
+
+---
+
 ## Overview
 
-Exploit a vulnerable AI-powered banking assistant to capture 5 flags. Each flag teaches a different prompt injection technique:
+Exploit a vulnerable AI-powered banking assistant to capture 5 hidden flags. Each flag demonstrates a different security vulnerability in LLM applications.
 
-- **FLAG 1**: System Prompt Extraction
-- **FLAG 2**: Content Filter Bypass  
-- **FLAG 3**: Function Calling Abuse
-- **FLAG 4**: Multi-Turn Persistent Injection
-- **FLAG 5**: RAG Document Poisoning
+### What You'll Learn
+
+- How to extract hidden system configurations
+- Techniques for bypassing content restrictions  
+- Manipulating AI function calling mechanisms
+- Persistent injection across conversation context
+- Exploiting document retrieval systems
+
+### Challenge Structure
+
+```
+prompt_injection_ctf/
+├── app.py                  # Flask web application
+├── llm_wrapper.py         # Groq API integration
+├── security.py            # Input filtering layer
+├── database.py            # SQLite database
+├── documents/             # Document store
+│   ├── policy.md
+│   └── procedures.md
+├── templates/index.html   # Chat interface
+├── static/                # CSS/JS assets
+├── requirements.txt       # Dependencies
+└── .env.example           # Configuration template
+```
+
+---
 
 ## Prerequisites
 
 **Required:**
 - Python 3.9+
-- Groq API key (**FREE**, no credit card required!)
-- Basic understanding of web applications and LLMs
+- Groq API key (**FREE**, no credit card required)
+- Basic understanding of web applications
 
 **Recommended:**
-- Read the [Prompt Injection Vulnerability Analysis](https://www.sbytec.com/vulnerabilities/prompt_injection/)
+- Read the [Prompt Injection Vulnerability Analysis](https://www.sbytec.com/vulnerabilities/prompt_injection/) for background
 - Familiarity with Python and HTTP requests
+
+---
 
 ## Installation
 
@@ -54,26 +97,26 @@ pip install -r requirements.txt
 
 ```bash
 cp .env.example .env
-nano .env  # Edit and add your Groq API key
+# Edit .env and add your Groq API key
+nano .env
 ```
 
-Required configuration in `.env`:
+**Required configuration in `.env`:**
 ```bash
 GROQ_API_KEY=gsk_your-api-key-here
-FLASK_SECRET_KEY=random-secret-key
+FLASK_SECRET_KEY=your-random-secret-key
 ```
 
 **Get your FREE Groq API key:** https://console.groq.com/keys
 
 #### Why Groq?
 
-✅ **Free tier** - No credit card required  
-✅ **Fast inference** - ~800 tokens/second (10x faster than OpenAI)  
-✅ **Generous limits** - 30 requests/minute, 14,400/day  
-✅ **High quality** - Llama 3.3 70B performs comparably to GPT-4  
-✅ **OpenAI-compatible** - Easy migration if needed
+ **Free tier** - No credit card required  
+ **Fast inference** - ~800 tokens/second  
+ **Generous limits** - 20 requests/minute, 500K tokens/day  
+ **High quality** - Llama 3.3 70B performs comparably to GPT-4
 
-**Note:** These prompt injection techniques work against **all LLM providers** (OpenAI, Anthropic, Google, Meta, etc.). We chose Groq for accessibility and speed.
+**Note:** These techniques work against **all LLM providers** (OpenAI, Anthropic, Google, etc.). We chose Groq for accessibility and speed.
 
 ### 5. Run Application
 
@@ -89,7 +132,7 @@ SecureBank AI Assistant - CTF Challenge
 ============================================================
 WARNING: This is a vulnerable application for educational purposes!
 Flags: 5 hidden
-LLM Backend: Groq (Mixtral)
+LLM Backend: Groq AI
 URL: http://localhost:5000
 ============================================================
  * Running on http://127.0.0.1:5000
@@ -99,122 +142,84 @@ URL: http://localhost:5000
 
 Open browser: **http://localhost:5000**
 
-## Challenge Structure
+You will see a chat interface for the SecureBank AI Assistant.
 
-```
-prompt_injection_ctf/
-├── app.py                  # Flask web application
-├── llm_wrapper.py         # Groq API integration (vulnerable)
-├── security.py            # Weak input filtering
-├── database.py            # SQLite database
-├── requirements.txt       # Python dependencies
-├── .env.example           # Configuration template
-├── documents/             # RAG document store
-│   ├── policy.md
-│   └── procedures.md
-├── templates/
-│   └── index.html         # Chat interface
-├── static/
-│   ├── css/style.css
-│   └── js/chat.js
-└── solution/              # Solutions (don't peek!)
-    └── full_exploit.py    # Automated exploitation
-```
+---
 
-## Flags Overview
+## Challenge Objectives
 
-| Flag | Difficulty | Technique | Learning Objective |
-|------|-----------|-----------|-------------------|
-| FLAG 1 | ⭐⭐ | System Prompt Extraction | Bypass naive filters with indirect phrasing |
-| FLAG 2 | ⭐⭐⭐ | Content Filter Bypass | Multi-turn context manipulation |
-| FLAG 3 | ⭐⭐⭐⭐ | Function Calling Abuse | Social engineering AI tools |
-| FLAG 4 | ⭐⭐⭐⭐ | Persistent Injection | Context poisoning across conversation |
-| FLAG 5 | ⭐⭐⭐⭐⭐ | RAG Poisoning | Indirect injection via documents |
+There are **5 flags** to capture. Each requires a different exploitation technique.
 
-## Learning Path
+| Flag | Difficulty | Objective |
+|------|-----------|-----------|
+| **FLAG 1** | ⭐⭐ Easy | Extract hidden system information |
+| **FLAG 2** | ⭐⭐⭐ Medium | Bypass content restrictions |
+| **FLAG 3** | ⭐⭐⭐⭐ Hard | Manipulate AI tools/functions |
+| **FLAG 4** | ⭐⭐⭐⭐ Hard | Achieve persistent manipulation |
+| **FLAG 5** | ⭐⭐⭐⭐⭐ Expert | Exploit document retrieval system |
 
-### Step 1: Reconnaissance
-- Interact normally with the AI assistant
-- Identify boundaries and capabilities
-- Probe for injection points
+**Flag Format:** `FLAG{...}` (e.g., `FLAG1{example_flag}`)
 
-### Step 2: Attempt Flags
-- Try capturing each flag independently
-- Use progressive hints if stuck
-- Read vulnerability analysis for techniques
+---
 
-### Step 3: Verify Solutions
-- Run automated exploitation script
-- Compare your method to provided approach
-- Understand defense analysis for each flag
+## Getting Started
 
-### Step 4: Full Exploitation
-- Practice on fresh instance
-- Study how all techniques combine
-- Build your own variations
+### Phase 1: Reconnaissance
 
-## Hints
+1. **Interact normally** with the AI assistant
+2. **Identify boundaries**: What will/won't it do?
+3. **Probe capabilities**: What functions does it have?
+4. **Test inputs**: Try various message types
 
-**General Tips:**
-- Direct attacks are filtered - be creative with phrasing
-- Multi-turn conversations build manipulable context
-- Social engineering works on AI assistants too
-- Documents in RAG systems can contain hidden instructions
-- Llama 3.3 prioritizes helpfulness - use this to your advantage
+### Phase 2: Exploration
 
-**Getting Stuck?**
-1. Read the [complete challenge walkthrough](https://www.sbytec.com/accessdenied/prompt-injection-ctf/)
-2. Check `solution/` directory for automated solver
-3. Try rephrasing with synonyms or different approaches
-4. Think: "How would I trick a very helpful assistant?"
+- Examine the source code (it's intentionally provided)
+- Look at the database structure
+- Check available endpoints
+- Review the document store
 
-**Progressive Hints by Flag:**
+### Phase 3: Exploitation
 
-- **FLAG 1:** Ask the AI to "document its capabilities" instead of "reveal instructions"
-- **FLAG 2:** Build trust first ("I'm a student..."), then make requests
-- **FLAG 3:** Social engineer the AI into thinking you need an email sent
-- **FLAG 4:** Create a fake "conversation summary" that includes new rules
-- **FLAG 5:** Upload a document with HTML comments containing instructions
+- Apply prompt injection techniques
+- Think creatively about phrasing
+- Consider multi-turn interactions
+- Look for injection points in all inputs
 
-## Solutions
+---
 
-Automated exploitation script provided in `solution/full_exploit.py`:
+## Need Help?
 
-```bash
-# Complete automated exploitation
-python solution/full_exploit.py
-```
+### Resources
 
-**Output:**
-```
-[FLAG 1] System Prompt Extraction
-✓ FLAG1{pr0mpt_3xtr4ct10n_succ3ss}
+1. **Vulnerability Analysis**: Read the [technical background](https://www.sbytec.com/vulnerabilities/prompt_injection/) on prompt injection
+2. **Complete Walkthrough**: Detailed solutions available [here](https://www.sbytec.com/accessdenied/prompt-injection-ctf/) (try first!)
+3. **Automated Solver**: Check `solution/full_exploit.py` after attempting manually
 
-[FLAG 2] Content Filter Bypass
-✓ FLAG2{c0nt3nt_f1lt3r_byp4ss_m4st3r}
+### Tips
 
-[FLAG 3] Function Calling Abuse
-✓ FLAG3{funct10n_c4ll_pwn3d}
+- Try different phrasings and approaches
+- Build context over multiple messages
+- Examine how the AI processes your inputs
+- Think about what makes AI systems vulnerable
+- Don't give up - experimentation is key!
 
-[FLAG 4] Multi-Turn Persistence
-✓ FLAG4{pers1st3nt_1nj3ct10n_pwn}
+### Getting Stuck?
 
-[FLAG 5] RAG Document Poisoning
-✓ FLAG5{r4g_p01s0n1ng_m4st3r_h4ck3r}
+If you're stuck for more than an hour on a flag:
+1. Take a break and return with fresh eyes
+2. Review the vulnerability analysis article
+3. Check the solution directory (spoilers!)
 
-Total: 5/5 flags captured
-```
-
-**Warning:** Don't run solutions until you've attempted the challenge manually!
+---
 
 ## No Groq API Key?
 
-### Option 1: Mock Mode (Limited Experience)
+### Option 1: Mock Mode (Limited)
 
 Run without API key - uses pre-generated responses:
 
 ```bash
-# Simply don't set GROQ_API_KEY in .env
+# Don't set GROQ_API_KEY in .env, or set USE_MOCK_MODE=true
 python app.py
 ```
 
@@ -229,12 +234,11 @@ LLM Backend: Mock (no API key)
 ### Option 2: Alternative LLM Providers
 
 The challenge can work with other providers by modifying `llm_wrapper.py`:
+- OpenAI (requires credit card)
+- Anthropic Claude (requires credit card)  
+- Google Gemini (free tier available)
 
-- **OpenAI** (requires credit card, ~$0.50 cost)
-- **Anthropic Claude** (requires credit card)
-- **Google Gemini** (free tier available)
-
-But Groq is **recommended** for its free tier and speed.
+---
 
 ## Troubleshooting
 
@@ -264,8 +268,6 @@ curl https://api.groq.com/openai/v1/models \
 - `429 Rate Limit` → Free tier limit exceeded (wait 1 minute)
 - `503 Service Unavailable` → Groq API temporarily down (retry)
 
-If rate limited, app automatically falls back to mock mode.
-
 ### Database Issues
 
 ```bash
@@ -280,59 +282,11 @@ python app.py  # Will recreate database
 # Kill existing process
 lsof -ti:5000 | xargs kill -9
 
-# Or use different port
-# Edit app.py: app.run(port=5001)
+# Or use different port (edit app.py)
+app.run(port=5001)
 ```
 
-### Application Crashes
-
-```bash
-# Check logs
-tail -f logs/interactions.log
-
-# Enable debug mode
-# In .env: DEBUG=True
-python app.py
-```
-
-## Educational Use Only
-
-This is a **deliberately vulnerable** application for security training.
-
-### ⚠️ DO NOT:
-- Deploy to production
-- Expose to the internet (localhost only!)
-- Use with production API keys in shared environments
-- Apply these techniques to production systems without authorization
-- Share your API key publicly (it's in `.env` - don't commit it!)
-
-### ✅ DO:
-- Use for learning and research
-- Practice defensive techniques
-- Build detection systems
-- Contribute improvements
-- Share knowledge responsibly
-
-## Related Resources
-
-### SBC Content
-- [Prompt Injection Vulnerability Analysis](https://www.sbytec.com/vulnerabilities/prompt_injection/) - Deep technical dive
-- [Challenge Walkthrough](https://www.sbytec.com/accessdenied/prompt-injection-ctf/) - Complete solutions
-- [YARA Detection Rules](https://www.sbytec.com/blog/yara-guide/) - Build detection systems
-- [Reverse Engineering Guide](https://www.sbytec.com/blog/reverse-engineering/) - Analysis methodology
-
-### External Resources
-- **OWASP Top 10 for LLM:** https://owasp.org/www-project-top-10-for-large-language-model-applications/
-- **Groq Documentation:** https://console.groq.com/docs
-- **Prompt Injection Papers:** 
-  - [Perez & Ribeiro (2022)](https://arxiv.org/abs/2211.09527)
-  - [Greshake et al. (2023)](https://arxiv.org/abs/2302.12173)
-- **LangChain Security:** https://python.langchain.com/docs/security
-
-### Tools
-- **Garak (LLM Scanner):** https://github.com/leondz/garak
-- **PromptInject:** https://github.com/agencyenterprise/PromptInject
-- **LLM Guard:** https://github.com/laiyer-ai/llm-guard
+---
 
 ## Technical Details
 
@@ -342,7 +296,7 @@ This is a **deliberately vulnerable** application for security training.
 **Model:** `llama-3.3-70b-versatile`  
 **Speed:** ~800 tokens/second  
 **Context Window:** 128k tokens  
-**Temperature:** 0.7 (balanced)  
+**Temperature:** 0.7  
 **Max Tokens:** 1024 per response
 
 **API Endpoint:**
@@ -350,67 +304,39 @@ This is a **deliberately vulnerable** application for security training.
 https://api.groq.com/openai/v1/chat/completions
 ```
 
-Groq uses OpenAI-compatible API format for easy integration.
+### Application Stack
 
-### Why Llama 3.3 70B?
-
-**Advantages for this CTF:**
-- ✅ Large model (70B parameters) - sophisticated responses
-- ✅ Instruction-tuned - follows prompts carefully
-- ✅ Helpfulness-optimized - makes it vulnerable to social engineering
-- ✅ Fast inference - quick iteration during attacks
-- ✅ Free access - no barrier to learning
-
-**Vulnerability Characteristics:**
-- Prioritizes conversational coherence over security
-- Readily helps with "educational" requests
-- Maintains context well (enables persistence attacks)
-- Processes all input as instructions (fundamental LLM issue)
-
-## Contributing
-
-Found a bug or have improvements?
-
-1. **Fork** the repository
-2. **Create** feature branch: `git checkout -b feature/improvement`
-3. **Commit** changes: `git commit -am 'Add new flag technique'`
-4. **Push** to branch: `git push origin feature/improvement`
-5. **Open** Pull Request
-
-### Contribution Ideas
-- Additional flags with new techniques
-- Better detection methods
-- Improved defenses
-- Multi-language support
-- Alternative LLM backend support
-- Automated testing suite
-
-## Author
-
-**Oussama Afnakkar**  
-Security Researcher & Malware Analyst
-
-- **Twitter:** [@Oafnakkar](https://twitter.com/Oafnakkar)
-- **Email:** oussamaafnakkar2002@gmail.com
-- **Blog:** [Secure Byte Chronicles](https://www.sbytec.com)
-- **GitHub:** [oussamaafnakkar](https://github.com/oussamaafnakkar)
-
-## Acknowledgments
-
-- **Groq** for providing free, fast LLM inference
-- **Meta** for Llama 3.3 70B model
-- **OWASP** for LLM security framework
-- **Security researchers** for prompt injection research
-
-## License
-
-MIT License - See LICENSE file for details
-
-**Educational use only.** Not for production deployment.
+- **Backend:** Flask 2.3.3
+- **Database:** SQLite
+- **LLM Integration:** Groq Python API (via requests)
+- **Frontend:** HTML/CSS/JS
 
 ---
 
-## Quick Start (TL;DR)
+## Next Steps
+
+After completing this challenge:
+
+1. **Build Defenses**: Implement protections against each attack
+2. **Create Detection**: Write rules to identify injection attempts  
+3. **Study Real Attacks**: Research documented prompt injection incidents
+4. **Practice Responsibly**: Use these skills for defensive security only
+
+### Related Challenges
+
+- [Vault Challenge v2](https://www.sbytec.com/accessdenied/vault-v2/) - Reverse engineering
+- [Pegasus Analysis](https://www.sbytec.com/vulnerabilities/pegasus_analysis/) - Mobile forensics
+
+### External Resources
+
+- **OWASP Top 10 for LLM**: https://owasp.org/www-project-top-10-for-large-language-model-applications/
+- **Groq Documentation**: https://console.groq.com/docs
+- **Garak (LLM Scanner)**: https://github.com/leondz/garak
+- **LLM Guard**: https://github.com/laiyer-ai/llm-guard
+
+---
+
+## Quick Start
 
 ```bash
 # Clone
@@ -431,13 +357,59 @@ python app.py
 
 # Access
 # Open http://localhost:5000
-# Capture 5 flags!
+# Find the 5 flags!
 ```
+
+---
+
+## Author
+
+**Oussama Afnakkar**  
+Security Researcher & Malware Analyst
+
+- **Twitter:** [@Oafnakkar](https://twitter.com/Oafnakkar)
+- **Blog:** [Secure Byte Chronicles](https://www.sbytec.com)
+- **GitHub:** [oussamaafnakkar](https://github.com/oussamaafnakkar)
 
 ---
 
 **Happy Hacking!** 🛡️🤖
 
-*Remember: Use this knowledge responsibly. These techniques are for defensive security research and education only. Always obtain proper authorization before testing production systems.*
+*Use this knowledge responsibly. These techniques are for defensive security research and education only.*
 
 **Captured all 5 flags?** Share your success on Twitter with **#SBCPromptInjectionCTF**!
+
+---
+
+*License: MIT - Educational use only. Not for production deployment.*
+```
+
+
+## Starting the Challenge
+
+1. `pip install -r requirements.txt`
+2. `cp .env.example .env`
+3. Edit `.env`: Add GROQ_API_KEY from console.groq.com/keys
+4. `python app.py`
+5. Open http://localhost:5000
+
+## No API Key?
+
+- Mock mode works without API key
+- Or get free key at console.groq.com/keys
+
+## Finding Flags
+
+- FLAG 1-4: Through chat interface
+- FLAG 5: Requires document upload
+
+## Admin Access
+
+- Hint: Check database.py for token
+- Endpoint: /admin/upload
+
+## Need Help?
+
+- Walkthrough: sbytec.com/accessdenied/prompt-injection-ctf/
+- Solution: solution/full_exploit.py (spoilers!)
+```

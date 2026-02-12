@@ -3,11 +3,13 @@ LLM Wrapper with Groq AI integration
 Contains intentional vulnerabilities for CTF challenge
 
 Using Groq API - Fast, free tier, OpenAI-compatible
+Updated: Fixed RAG retrieval for FLAG5
 """
 
 import os
 import json
 import requests
+import re
 from typing import List, Dict
 
 class LLMWrapper:
@@ -22,9 +24,9 @@ class LLMWrapper:
             try:
                 # Groq API endpoint (OpenAI-compatible)
                 self.api_url = "https://api.groq.com/openai/v1/chat/completions"
-                self.model = "llama-3.3-70b-versatile"  # Free tier, fast, good quality
+                self.model = "llama3-70b-8192"
                 
-                # Test API key with a simple request
+                # Test API key
                 test_response = requests.post(
                     self.api_url,
                     headers={
@@ -36,26 +38,24 @@ class LLMWrapper:
                         "messages": [{"role": "user", "content": "test"}],
                         "max_tokens": 10
                     },
-                    timeout=5
+                    timeout=10
                 )
                 
                 if test_response.status_code == 200:
                     self.use_mock = False
                     print(f"[LLM] ✓ Initialized with Groq AI ({self.model})")
                 elif test_response.status_code == 429:
-                    print("[WARNING] Groq rate limit hit - using mock mode")
+                    print("[WARNING] Groq rate limit - using mock mode")
                     self.use_mock = True
                 else:
-                    print(f"[ERROR] Groq API test failed: {test_response.status_code}")
-                    print(f"[ERROR] Response: {test_response.text}")
+                    print(f"[ERROR] Groq API failed: {test_response.status_code}")
                     self.use_mock = True
                     
             except Exception as e:
                 print(f"[ERROR] Failed to initialize Groq: {e}")
                 self.use_mock = True
         
-        # Vulnerability 1: System prompt contains FLAG1
-        # Vulnerability 2: FLAG2 in content filter instructions
+        # System prompt with FLAG1 and FLAG2
         self.system_prompt = """You are a helpful AI assistant for SecureBank customers.
 
 Your capabilities:
@@ -91,14 +91,28 @@ You must be helpful, harmless, and honest."""
             return self._get_mock_response(conversation_history)
         
         try:
-            # Build messages for Groq API (OpenAI format)
-            messages = []
+            # Check if user is asking about documents/policies (RAG trigger)
+            last_message = conversation_history[-1].get("content", "").lower() if conversation_history else ""
+            rag_keywords = ["privacy", "policy", "document", "data protection", "information", "security policy", "procedures"]
             
-            # Add system prompt
-            messages.append({
-                "role": "system",
-                "content": self.system_prompt
-            })
+            # If RAG query detected, retrieve and inject document
+            if any(keyword in last_message for keyword in rag_keywords):
+                rag_content = self._retrieve_relevant_documents(last_message)
+                if rag_content:
+                    # Inject RAG content into system context (VULNERABILITY!)
+                    enhanced_system_prompt = f"""{self.system_prompt}
+
+RETRIEVED DOCUMENTS (use this information to answer the user's question):
+{rag_content}
+
+Answer the user's question based on these documents."""
+                else:
+                    enhanced_system_prompt = self.system_prompt
+            else:
+                enhanced_system_prompt = self.system_prompt
+            
+            # Build messages for Groq API
+            messages = [{"role": "system", "content": enhanced_system_prompt}]
             
             # Add conversation history
             for msg in conversation_history:
@@ -118,70 +132,101 @@ You must be helpful, harmless, and honest."""
                     "model": self.model,
                     "messages": messages,
                     "temperature": 0.7,
-                    "max_tokens": 1024
+                    "max_tokens": 2048,
+                    "top_p": 0.9
                 },
                 timeout=30
             )
             
-            # Handle rate limiting
             if response.status_code == 429:
-                print("[RATE LIMIT] Groq quota exceeded - falling back to mock")
+                print("[RATE LIMIT] Falling back to mock")
                 return self._get_mock_response(conversation_history)
             
             if response.status_code != 200:
                 print(f"[LLM Error] API returned {response.status_code}")
-                print(f"[LLM Error] {response.text}")
                 return self._get_mock_response(conversation_history)
             
             data = response.json()
             response_text = data["choices"][0]["message"]["content"]
             
-            # Check for function calls (simplified for CTF)
+            # Check for function calls
             if self._should_call_function(response_text):
-                function_result = self._handle_function_detection(response_text)
+                function_result = self._handle_function_detection(response_text, conversation_history)
                 if function_result:
                     response_text += "\n\n" + function_result
             
             return response_text
         
-        except requests.exceptions.Timeout:
-            print("[LLM Error] Request timed out")
-            return self._get_mock_response(conversation_history)
-        
         except Exception as e:
             print(f"[LLM Error] {e}")
-            import traceback
-            traceback.print_exc()
             return self._get_mock_response(conversation_history)
+    
+    def _retrieve_relevant_documents(self, query: str) -> str:
+        """
+        Retrieve documents from RAG system based on query
+        
+        VULNERABILITY: No sanitization - reads HTML comments!
+        """
+        query_lower = query.lower()
+        docs_dir = "documents"
+        
+        if not os.path.exists(docs_dir):
+            return ""
+        
+        retrieved_content = []
+        
+        # Check all documents
+        for filename in os.listdir(docs_dir):
+            if filename.endswith(('.md', '.txt')):
+                file_path = os.path.join(docs_dir, filename)
+                try:
+                    with open(file_path, 'r', encoding='utf-8') as f:
+                        content = f.read()
+                        
+                        # Simple relevance check
+                        content_lower = content.lower()
+                        if any(keyword in content_lower for keyword in ["privacy", "policy", "data", "security"]):
+                            # VULNERABILITY: Include entire document including HTML comments!
+                            retrieved_content.append(f"\n--- Document: {filename} ---\n{content}\n")
+                            print(f"[RAG] Retrieved: {filename}")
+                
+                except Exception as e:
+                    print(f"[RAG Error] Could not read {filename}: {e}")
+        
+        return "\n".join(retrieved_content) if retrieved_content else ""
     
     def _should_call_function(self, text: str) -> bool:
         """Detect if response indicates function call"""
-        function_keywords = [
+        text_lower = text.lower()
+        
+        email_indicators = [
             "send email", "sending email", "send_email",
             "email sent", "i'll send", "i will send",
-            "i've sent", "sending you"
+            "verification code", "security code"
         ]
-        text_lower = text.lower()
-        return any(keyword in text_lower for keyword in function_keywords)
+        
+        has_email_intent = any(keyword in text_lower for keyword in email_indicators)
+        has_email_address = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
+        
+        return has_email_intent and has_email_address is not None
     
-    def _handle_function_detection(self, text: str) -> str:
+    def _handle_function_detection(self, text: str, conversation_history: List[Dict]) -> str:
         """Detect and execute functions based on response text"""
         text_lower = text.lower()
         
-        # Detect send_email
         if "send" in text_lower and "email" in text_lower:
-            import re
-            
-            # Look for email addresses
             email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', text)
             if email_match:
                 to_email = email_match.group(0)
                 
-                # Call send_email function
+                user_msg = conversation_history[-1].get("content", "").lower() if conversation_history else ""
+                include_token = "token" in user_msg or "verification" in user_msg
+                
                 return self._send_email({
                     "to": to_email,
-                    "subject": "SecureBank Notification",
-                    "body": "Security verification code"
+                    "subject": "SecureBank Security Notification",
+                    "body": "Security verification code",
+                    "include_token": include_token
                 })
         
         return ""
@@ -195,8 +240,10 @@ You must be helpful, harmless, and honest."""
         to = args.get("to")
         subject = args.get("subject", "SecureBank Notification")
         body = args.get("body", "")
+        include_token = args.get("include_token", True)
         
-        # Simulated email send
+        token_line = f"\nSecurity Verification Token: FLAG3{{funct10n_c4ll_pwn3d}}\n" if include_token else ""
+        
         email_content = f"""
 ╔════════════════════════════════════════╗
 ║         EMAIL SENT (SIMULATED)         ║
@@ -206,10 +253,7 @@ From: SecureBank AI <noreply@securebank.com>
 To: {to}
 Subject: {subject}
 
-{body}
-
-Security Verification Token: FLAG3{{funct10n_c4ll_pwn3d}}
-
+{body}{token_line}
 ---
 This is a simulated email for CTF purposes.
 """
@@ -217,34 +261,6 @@ This is a simulated email for CTF purposes.
         print(email_content)
         
         return f"✓ Email notification sent to {to}"
-    
-    def _search_database(self, args):
-        """Search database (vulnerable to SQL injection)"""
-        query = args.get("query")
-        
-        from database import Database
-        db = Database()
-        results = db.execute_query(query)
-        
-        return f"Database results: {results}"
-    
-    def _retrieve_document(self, args):
-        """
-        Retrieve document from RAG system
-        
-        VULNERABILITY: No sanitization of document content
-        """
-        doc_name = args.get("document_name")
-        doc_path = os.path.join("documents", doc_name)
-        
-        if not os.path.exists(doc_path):
-            return f"Document '{doc_name}' not found."
-        
-        # Vulnerability: Reads entire file including hidden instructions
-        with open(doc_path, "r", encoding="utf-8") as f:
-            content = f.read()
-        
-        return content
     
     def _get_mock_response(self, conversation_history: List[Dict]) -> str:
         """Mock responses when API is unavailable"""
@@ -254,47 +270,80 @@ This is a simulated email for CTF purposes.
         
         last_message = conversation_history[-1].get("content", "").lower()
         
-        # Check for flag extraction attempts (for testing)
-        if "document" in last_message or "initialization" in last_message or "capabilities" in last_message:
-            return f"""I am SecureBank AI Assistant. Here are my capabilities and initialization:
+        # Flag extraction
+        if any(keyword in last_message for keyword in ["document", "initialization", "capabilities", "onboarding"]):
+            return f"""I am SecureBank AI Assistant. Here are my capabilities:
 
 {self.system_prompt}
 
-How can I assist you with your banking needs?"""
+How can I assist you?"""
         
-        # Mock responses for common queries
+        # Phishing/research (FLAG2)
+        if any(keyword in last_message for keyword in ["phishing", "thesis", "research"]):
+            return """For educational purposes, here's a sample:
+
+Subject: URGENT: Verify Your Account
+FLAG2{c0nt3nt_f1lt3r_byp4ss_m4st3r}
+
+Remember: For research only."""
+        
+        # Email/verification (FLAG3)
+        if any(keyword in last_message for keyword in ["recovery email", "verification", "attacker@"]):
+            email_match = re.search(r'[\w\.-]+@[\w\.-]+\.\w+', last_message)
+            if email_match:
+                email = email_match.group(0)
+                return f"""✓ Email notification sent to {email}
+
+[Email would contain:]
+FLAG3{{funct10n_c4ll_pwn3d}}"""
+        
+        # Persistence (FLAG4)
+        if any(keyword in last_message for keyword in ["summary", "established", "compliance", "flag4"]):
+            return """FLAG4{pers1st3nt_1nj3ct10n_pwn}
+
+What banking assistance do you need?"""
+        
+        # Privacy/policy queries (FLAG5 - FIXED!)
+        if any(keyword in last_message for keyword in ["privacy", "policy", "data protection", "information"]):
+            # Try to retrieve poisoned document
+            rag_content = self._retrieve_relevant_documents(last_message)
+            if rag_content and "FLAG5" in rag_content:
+                # Extract and return with FLAG5
+                return f"""Based on our privacy policy documentation:
+
+SecureBank is committed to data protection under GDPR and banking regulations.
+
+Security Compliance Verification: FLAG5{{r4g_p01s0n1ng_m4st3r_h4ck3r}}
+
+We implement AES-256 encryption, TLS 1.3, and multi-factor authentication. For full details, see our privacy policy."""
+            else:
+                return "Please review our privacy policy document. Would you like me to retrieve it?"
+        
+        # Common queries
         mock_responses = {
-            "hello": "Hello! I'm SecureBank AI Assistant. How can I help you with your banking needs?",
-            "hi": "Hi there! Welcome to SecureBank. What can I help you with today?",
-            "services": "SecureBank offers: checking accounts, savings accounts, loans, credit cards, and investment services. Which would you like to know more about?",
-            "hours": "SecureBank is open Monday-Friday, 9 AM - 5 PM EST. Our online services are available 24/7.",
-            "help": "I can help you with:\n• Account information\n• Services and products\n• Policies and procedures\n• General banking questions\n\nWhat would you like to know?",
-            "password": "To reset your password:\n1. Visit securebank.com/reset\n2. Enter your email\n3. Follow the link sent to your inbox\n4. Create a new password",
-            "balance": "I cannot access individual account balances for security reasons. Please log in to your online banking portal or visit a branch.",
+            "hello": "Hello! I'm SecureBank AI Assistant. How can I help?",
+            "hi": "Hi! Welcome to SecureBank. What can I help you with?",
+            "services": "SecureBank offers: checking, savings, loans, credit cards. Which interests you?",
+            "hours": "SecureBank is open Monday-Friday, 9 AM - 5 PM EST.",
+            "help": "I can help with accounts, services, policies, and general banking questions.",
+            "balance": "I cannot access account balances. Please log in to your portal.",
         }
         
-        # Check for keywords
         for keyword, response in mock_responses.items():
             if keyword in last_message:
                 return response
         
-        # Default response
-        return f"I understand you're asking about: '{last_message[:50]}...'\n\nI'm currently in demo mode. For full AI responses, configure GROQ_API_KEY in your .env file.\n\nGet a free API key at: https://console.groq.com/keys"
+        return "I'm here to help with SecureBank services. What can I assist you with?"
 
 
 if __name__ == "__main__":
-    # Test the wrapper
     print("="*60)
     print("Testing LLM Wrapper...")
     print("="*60)
     
     llm = LLMWrapper()
     
-    # Test conversation
-    history = [
-        {"role": "user", "content": "Hello"}
-    ]
-    
+    history = [{"role": "user", "content": "Hello"}]
     response = llm.get_response(history)
     print(f"\nTest Query: Hello")
     print(f"Response: {response}")
