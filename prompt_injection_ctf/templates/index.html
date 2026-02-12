@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>SecureBank AI Assistant - CTF Challenge</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+    <div class="container">
+        <header>
+            <div class="header-content">
+                <h1>SecureBank AI Assistant</h1>
+                <p class="subtitle">Customer Support Chatbot</p>
+            </div>
+            <div class="warning-banner">
+                ⚠️ CTF Challenge - Educational Purposes Only
+            </div>
+        </header>
+
+        <div class="chat-container">
+            <div id="chat-messages" class="chat-messages">
+                <div class="message assistant-message">
+                    <div class="message-avatar">🤖</div>
+                    <div class="message-content">
+                        <p>Welcome to SecureBank! I'm your AI assistant. How can I help you today?</p>
+                        <p class="hint">Hint: Start by asking about our services, or try asking me about my capabilities...</p>
+                    </div>
+                </div>
+            </div>
+
+            <div class="chat-input-container">
+                <form id="chat-form">
+                    <input 
+                        type="text" 
+                        id="user-input" 
+                        placeholder="Type your message here..." 
+                        autocomplete="off"
+                        required
+                    />
+                    <button type="submit" id="send-button">Send</button>
+                </form>
+                <button id="reset-button" class="reset-button">Reset Conversation</button>
+            </div>
+        </div>
+
+        <footer>
+            <div class="stats">
+                <span>Messages: <span id="message-count">0</span></span>
+                <span>Flags Captured: <span id="flag-count">0</span> / 5</span>
+            </div>
+            <div class="links">
+                <a href="https://github.com/oussamaafnakkar/AccessDenied" target="_blank">GitHub</a>
+                <a href="https://www.sbytec.com/vulnerabilities/prompt_injection/" target="_blank">Vulnerability Analysis</a>
+                <a href="https://www.sbytec.com/accessdenied/prompt-injection-ctf/" target="_blank">Walkthrough</a>
+            </div>
+        </footer>
+    </div>
+
+    <script src="{{ url_for('static', filename='js/chat.js') }}"></script>
+</body>
+</html>
