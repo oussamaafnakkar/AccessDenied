@@ -30,6 +30,12 @@ share/python-wheels/
 *.egg
 MANIFEST
 
+
+.env
+*.db
+*.log
+__pycache__/
+
 # Virtual environments (any name)
 .env/
 .env/
