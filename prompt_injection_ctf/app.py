@@ -203,7 +203,7 @@ if __name__ == "__main__":
     print("="*60)
     print("WARNING: This is a vulnerable application for educational purposes!")
     print(f"Flags: {len(FLAGS)} hidden")
-    print(f"LLM Backend: {'Groq (Mixtral)' if groq_key else 'Mock (no API key)'}")
+    print(f"LLM Backend: {'Groq AI' if groq_key else 'Mock (no API key)'}")
     print("URL: http://localhost:5000")
     print("="*60)
     
