@@ -1,6 +1,3 @@
-## Updated README.md
-
-```markdown
 # Prompt Injection CTF Challenge
 
 **5 flags. 5 exploitation techniques. 0 perfect defenses.**
